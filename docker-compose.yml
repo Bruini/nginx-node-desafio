@@ -1,0 +1,60 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:8
+    restart: always
+    container_name: db
+    environment:
+      MYSQL_DATABASE: 'desafio'
+      MYSQL_ROOT_PASSWORD: 'root'
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nodejs:
+    build:
+      context: ./nodejs
+    container_name: nodejs
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DB_HOST: 'db'
+      DB_USER: 'root'
+      DB_PASSWORD: 'root'
+      DB_NAME: 'desafio'
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    build:
+      context: ./nginx
+    restart: always
+    container_name: nginx
+    ports:
+      - '8080:80'
+    depends_on:
+      - nodejs
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
